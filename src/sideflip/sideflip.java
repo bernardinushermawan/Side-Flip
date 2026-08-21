@@ -557,16 +557,8 @@ public final class sideflip
 		selY=-1;
 		print(status,"");
 		updatePoint();
-		checkTurnAndEndGame();
+		if(checkTurnAndEndGame()) return;
 		updateUI();
-		currentMove[12] = turn;
-		while(movep<history.size()-1)
-		{
-			history.remove(history.size()-1);
-		}
-		history.add(currentMove);
-		currentMove = new int[13];
-		movep++;
 		
 		triggerComputerTurn();
 	}
@@ -583,6 +575,7 @@ public final class sideflip
 		placePiece(prevX, prevY, prevTurn);
 		cells[newY][newX].removeAll();
 		resetPiece(newX, newY);
+		
 		int counter = 4;
 		for(int r=-1; r<=1; r++) for(int c=-1; c<=1; c++)
 		{
@@ -650,23 +643,43 @@ public final class sideflip
 	
 	private boolean checkTurnAndEndGame()
 	{
-		if(hasValidMove(3-turn))
+		boolean flag;
+		if(hasPiece(3-turn))
 		{
-			turn = 3-turn;
-			return false;
+			if(hasValidMove(3-turn))
+			{
+				turn = 3-turn;
+				flag = false;
+			}
+			else if(hasValidMove(turn))
+			{
+				String turnInfo = turn==1 ? "Player 2 (●)" : "Player 1 (⨯)";			
+				print(status,"<div style='text-align: center; font-family: Arial; font-size: 14px; font-weight: bold; color: #7B2525;'>"
+						+ turnInfo + " doesn't have valid move!</div>");
+				flag = false;
+			}
+			else
+			{
+				endGame();
+				flag = true;
+			}
 		}
-		if(hasValidMove(turn))
-		{
-			String turnInfo = turn==1 ? "Player 2 (●)" : "Player 1 (⨯)";			
-			print(status,"<div style='text-align: center; font-family: Arial; font-size: 14px; font-weight: bold; color: #7B2525;'>"
-					+ turnInfo + " doesn't have valid move!</div>");
-			return false;
-		}
+		
 		else
 		{
 			endGame();
-			return true;
+			flag = true;
 		}
+		currentMove[12] = turn;
+		while(movep<history.size()-1)
+		{
+			history.remove(history.size()-1);
+		}
+		history.add(currentMove);
+		currentMove = new int[13];
+		movep++;
+		
+		return flag;
 	}
 	
 	private boolean hasValidMove(int currentPlayer)
@@ -689,10 +702,21 @@ public final class sideflip
 		return false;
 	}
 	
+	private boolean hasPiece(int currentPlayer)
+	{
+		for(int r=0; r<n; r++) for(int c=0; c<n; c++)
+		{
+			if(boardState[r][c]==currentPlayer)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	private void endGame()
 	{
-		System.out.println(points[1]);
-		System.out.println(points[2]);
+		updateUI();
 		
 		if(points[1]>points[2])
 		{
@@ -874,21 +898,13 @@ public final class sideflip
 		int y0 = bestMove[1];
 		int x1 = bestMove[2];
 		int y1 = bestMove[3];
-		makeMove(x0, y0, x1, y1);
+		makeMove(x0, y0, x1, y1); 
+		return;
 	}
 	
 	private boolean win(int turn)
 	{
-		if(turn==1)
-		{
-			if(points[1] > points[2]) return true;
-			return false;
-		}
-		else
-		{
-			if(points[2] > points[1]) return true;
-			return false;
-		}
+		return evalpos()>0;
 	}
 	
 	private int evalpos()
@@ -904,12 +920,12 @@ public final class sideflip
 		return currentP-opponentP;
 	}
 	
-	private void simulateMove(int x0, int y0, int x, int y) 
+	private void simulateMove(int x0, int y0, int x, int y, int[] move) 
 	{
 		int distance = Math.max(Math.abs(x0-x), Math.abs(y0-y));
 		
-		if(distance==2) boardState[y0][x0]=0;
-		boardState[y][x]=turn;
+		if(distance==2) resetPiece(x0, y0);
+		placePiece(x, y, turn);
 		
 		int oponent = 3-turn;
 		int counter = 4;
@@ -922,57 +938,49 @@ public final class sideflip
 			{
 				if(boardState[adjY][adjX]==oponent)
 				{
-					boardState[adjY][adjX] = turn;
-					currentMove[counter] = turn;
+					placePiece(adjX, adjY, turn);
+					move[counter] = turn;
 				}
 			}
 			counter++;
 		}
 		
-		currentMove[0] = x0;
-		currentMove[1] = y0;
-		currentMove[2] = x;
-		currentMove[3] = y;	
-		
+		move[0] = x0;
+		move[1] = y0;
+		move[2] = x;
+		move[3] = y;
+		move[12] = turn;
 		
 		if(hasValidMove(3-turn)) turn = 3-turn;
-		currentMove[12] = turn;
-		while(movep<history.size()-1)
-		{
-			history.remove(history.size()-1);
-		}
-		history.add(currentMove);
-		currentMove = new int[13];
-		movep++;
+		
 	}
 	
-	private void simulateUndo()
+	private void simulateUndo(int[] move)
 	{
-		int[] currentState = history.get(movep);
-		int prevX = currentState[0];
-		int prevY = currentState[1];
-		int newX = currentState[2];
-		int newY = currentState[3];
-		int prevTurn = history.get(movep-1)[12];
+		int prevX = move[0];
+		int prevY = move[1];
+		int newX = move[2];
+		int newY = move[3];
+		int prevTurn = move[12];
 		
-		boardState[prevY][prevX] = prevTurn;
-		boardState[newY][newX] = 0;
+		placePiece(prevX, prevY, prevTurn);
+		resetPiece(newX, newY);
+		
 		int counter = 4;
 		for(int r=-1; r<=1; r++) for(int c=-1; c<=1; c++)
 		{
 			int dy = newY+r;
 			int dx = newX+c;
 			if(r==0 && c==0) continue;
-			if(currentState[counter]==0) counter++;
+			if(move[counter]==0) counter++;
 			else 
 			{
-				boardState[dy][dx] = 3-currentState[counter];
+				placePiece(dx, dy, 3-move[counter]);
 				counter++;
 			}
 			
 		}
 		turn = prevTurn;
-		movep--;
 	}
 	
 	private long eval0(int depth, int maxdepth)
@@ -981,6 +989,7 @@ public final class sideflip
 		if(depth==maxdepth) return evalpos();
 		long high = -INF;
 		
+		// looking for possible move
 		for(int r=0; r<n; r++) for(int c=0; c<n; c++)
 		{
 			if(boardState[r][c] == turn)
@@ -992,9 +1001,15 @@ public final class sideflip
 					int nc = c+dc;
 					if(nr>=0 && nr<n && nc>=0 && nc<n && boardState[nr][nc]==0)
 					{
-						simulateMove(c, r, nc, nr);
-						long v = -eval0(depth+1, maxdepth);
-						simulateUndo();
+						int[] move = new int[13];
+						int turnBeforeMove = turn;
+						long v;
+
+						simulateMove(c, r, nc, nr, move);
+						if(turn == turnBeforeMove) v = eval0(depth+1, maxdepth);
+						else v = -eval0(depth+1, maxdepth);
+						
+						simulateUndo(move);
 						if(v>high)
 						{
 							high = v;
@@ -1005,10 +1020,6 @@ public final class sideflip
 								bestMove[2] = nc;
 								bestMove[3] = nr;
 							}
-						}
-						if(depth==0)
-						{
-							System.out.println(r+" "+c+" "+v);
 						}
 					}
 				}
