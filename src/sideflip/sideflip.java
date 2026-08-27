@@ -20,16 +20,7 @@ public final class sideflip
 		textpane.setContentType("text/html");
 		textpane.setText(html);
 	}
-	private static JTextPane newtextdisplay()
-	{
-		JTextPane disp=new JTextPane();
-		disp.setFocusable(false);	// make not focusable (and not editable)
-		disp.setBackground(null);	// make transparent
-		DefaultCaret caret=new DefaultCaret();
-		caret.setUpdatePolicy(DefaultCaret.NEVER_UPDATE);
-		disp.setCaret(caret);		// stop scrollpane from tracking the caret in (disp)
-		return disp;
-	}
+
 	private final Dimension winsize = new Dimension(840,770);
 	private final JFrame win = new JFrame();
 	private final JPanel game = new JPanel();
@@ -880,7 +871,8 @@ public final class sideflip
 		if(input1Player.isSelected()) 
 		{
 			computerOn = true;
-			computerTurn = 2;
+			computerTurn = turn;
+			triggerComputerTurn();
 		}
 		if(input2Player.isSelected())
 		{
@@ -902,7 +894,7 @@ public final class sideflip
 		return;
 	}
 	
-	private boolean win(int turn)
+	private boolean win()
 	{
 		return evalpos()>0;
 	}
@@ -985,7 +977,7 @@ public final class sideflip
 	
 	private long eval0(int depth, int maxdepth)
 	{
-		if(!hasValidMove(turn) && !hasValidMove(3-turn)) return (win(turn) ? INF : -INF);
+		if(!hasValidMove(turn) && !hasValidMove(3-turn)) return (win() ? INF : -INF);
 		if(depth==maxdepth) return evalpos();
 		long high = -INF;
 		
@@ -1008,8 +1000,8 @@ public final class sideflip
 						simulateMove(c, r, nc, nr, move);
 						if(turn == turnBeforeMove) v = eval0(depth+1, maxdepth);
 						else v = -eval0(depth+1, maxdepth);
-						
 						simulateUndo(move);
+						
 						if(v>high)
 						{
 							high = v;
