@@ -885,11 +885,12 @@ public final class sideflip
 	{
 		if(!computerOn || turn!=computerTurn) return;
 		
-		eval0(0, 3);
+		long v=eval0(0, 3, -INF-1, INF+1);
 		int x0 = bestMove[0];
 		int y0 = bestMove[1];
 		int x1 = bestMove[2];
 		int y1 = bestMove[3];
+		System.out.println(Arrays.toString(bestMove)+": "+v+"\n---");
 		makeMove(x0, y0, x1, y1); 
 		return;
 	}
@@ -975,11 +976,11 @@ public final class sideflip
 		turn = prevTurn;
 	}
 	
-	private long eval0(int depth, int maxdepth)
+	private long eval0(int depth, int maxdepth, long a, long b)
 	{
 		if(!hasValidMove(turn) && !hasValidMove(3-turn)) return (win() ? INF : -INF);
 		if(depth==maxdepth) return evalpos();
-		long high = -INF;
+		long high = a;
 		
 		// looking for possible move
 		for(int r=0; r<n; r++) for(int c=0; c<n; c++)
@@ -998,10 +999,11 @@ public final class sideflip
 						long v;
 
 						simulateMove(c, r, nc, nr, move);
-						if(turn == turnBeforeMove) v = eval0(depth+1, maxdepth);
-						else v = -eval0(depth+1, maxdepth);
+						if(turn == turnBeforeMove) v = eval0(depth+1, maxdepth, high, b);
+						else v = -eval0(depth+1, maxdepth, -b, -high);
 						simulateUndo(move);
 						
+						if(depth==0) { System.out.println(Arrays.toString(move)+": "+v); }
 						if(v>high)
 						{
 							high = v;
@@ -1013,6 +1015,8 @@ public final class sideflip
 								bestMove[3] = nr;
 							}
 						}
+						
+						if(high>=b) return b;
 					}
 				}
 			}
