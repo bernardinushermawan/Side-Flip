@@ -32,6 +32,7 @@ public final class sideflip
 	private final ButtonGroup inputNumPlayer = new ButtonGroup();
 	private final JRadioButton input2Player = new JRadioButton("2 Player");
 	private final JRadioButton input1Player = new JRadioButton("1 Player");
+	private final JRadioButton input0Player = new JRadioButton("0 Player");
 	private final JTextField inputn = new JTextField(7);
 	
 	private final int cellwidth = 49;
@@ -94,17 +95,23 @@ public final class sideflip
 			// Input number of player //
 			input1Player.setFont(customFont);
 			input2Player.setFont(customFont);
-			control.add(input2Player, gbc2);
+			input0Player.setFont(customFont);
+			control.add(input0Player, gbc2);
 			gbc2.gridx++;
 			control.add(input1Player, gbc2);
 			gbc2.gridx++;
+			control.add(input2Player, gbc2);
+			gbc2.gridx++;
+			
 			inputNumPlayer.add(input2Player);
 			inputNumPlayer.add(input1Player);
+			inputNumPlayer.add(input0Player);
 			
 			DefaultListener inputPlayerAction= new DefaultListener()
 			{
 				public void actionPerformed(ActionEvent e) { updateNumPlayer(); }
 			};
+			input0Player.addActionListener(inputPlayerAction);
 			input1Player.addActionListener(inputPlayerAction);
 			input2Player.addActionListener(inputPlayerAction);
 			input2Player.setSelected(true);
@@ -639,6 +646,7 @@ public final class sideflip
 		{
 			if(hasValidMove(3-turn))
 			{
+				if(computerOn) computerTurn = 3-turn;
 				turn = 3-turn;
 				flag = false;
 			}
@@ -870,7 +878,7 @@ public final class sideflip
 	{
 		if(input1Player.isSelected()) 
 		{
-			computerOn = true;
+			computerOn = false;
 			computerTurn = turn;
 			triggerComputerTurn();
 		}
@@ -879,26 +887,41 @@ public final class sideflip
 			computerOn = false;
 			computerTurn = -1;
 		}
+		if(input0Player.isSelected())
+		{
+			computerOn = true;
+			computerTurn = turn;
+			triggerComputerTurn();
+		}
 	}
 	
 	private void triggerComputerTurn()
 	{
-		if(!computerOn || turn!=computerTurn) return;
+		if(turn!=computerTurn) return;
 		
-		long v=eval0(0, 3, -INF-1, INF+1);
-		int x0 = bestMove[0];
-		int y0 = bestMove[1];
-		int x1 = bestMove[2];
-		int y1 = bestMove[3];
-		System.out.println(Arrays.toString(bestMove)+": "+v+"\n---");
-		makeMove(x0, y0, x1, y1); 
+		// Do time-consuming computation //
+		new SwingWorker<Void,String>()
+		{
+			public Void doInBackground()
+			{
+				try 
+				{ 
+					long v=eval0(0, 4, -INF-1, INF+1);
+					System.out.println(Arrays.toString(bestMove)+": "+v+"\n---"); 
+				} 
+				catch(Exception e) { }
+				return null;
+			}	
+			public void done()
+			{
+				try { Thread.sleep(500); } catch(Exception e) {}
+				makeMove(bestMove[0], bestMove[1], bestMove[2], bestMove[3]); 
+			}
+		}.execute();
+		
 		return;
 	}
 	
-	private boolean win()
-	{
-		return evalpos()>0;
-	}
 	
 	private int evalpos()
 	{
@@ -913,8 +936,13 @@ public final class sideflip
 		return currentP-opponentP;
 	}
 	
-	private void simulateMove(int x0, int y0, int x, int y, int[] move) 
+	private void simulateMove(int[] move) 
 	{
+		int x0 = move[0];
+		int y0 = move[1];
+		int x = move[2];
+		int y = move[3];
+		
 		int distance = Math.max(Math.abs(x0-x), Math.abs(y0-y));
 		
 		if(distance==2) resetPiece(x0, y0);
@@ -937,11 +965,7 @@ public final class sideflip
 			}
 			counter++;
 		}
-		
-		move[0] = x0;
-		move[1] = y0;
-		move[2] = x;
-		move[3] = y;
+
 		move[12] = turn;
 		
 		if(hasValidMove(3-turn)) turn = 3-turn;
@@ -978,15 +1002,16 @@ public final class sideflip
 	
 	private long eval0(int depth, int maxdepth, long a, long b)
 	{
-		if(!hasValidMove(turn) && !hasValidMove(3-turn)) return (win() ? INF : -INF);
-		if(depth==maxdepth) return evalpos();
-		long high = a;
+		int PlayerPoint = 0;
+		int OpponentPoint = 0;
+		ArrayList<int[]> possibleMove = new ArrayList<int[]>();
 		
-		// looking for possible move
+		// LOOKING FOR POSSIBLE MOVE
 		for(int r=0; r<n; r++) for(int c=0; c<n; c++)
 		{
-			if(boardState[r][c] == turn)
+			if(boardState[r][c]==turn)
 			{
+				PlayerPoint++;
 				for(int dr=-2; dr<=2; dr++) for(int dc=-2; dc<=2; dc++)
 				{
 					if(dr==0 && dc==0) continue;
@@ -995,33 +1020,63 @@ public final class sideflip
 					if(nr>=0 && nr<n && nc>=0 && nc<n && boardState[nr][nc]==0)
 					{
 						int[] move = new int[13];
-						int turnBeforeMove = turn;
-						long v;
-
-						simulateMove(c, r, nc, nr, move);
-						if(turn == turnBeforeMove) v = eval0(depth+1, maxdepth, high, b);
-						else v = -eval0(depth+1, maxdepth, -b, -high);
-						simulateUndo(move);
+						move[0] = c;
+						move[1] = r;
+						move[2] = nc;
+						move[3] = nr;
 						
-						if(depth==0) { System.out.println(Arrays.toString(move)+": "+v); }
-						if(v>high)
-						{
-							high = v;
-							if(depth==0)
-							{
-								bestMove[0] = c;
-								bestMove[1] = r;
-								bestMove[2] = nc;
-								bestMove[3] = nr;
-							}
-						}
-						
-						if(high>=b) return b;
+						int distance = Math.max(Math.abs(dr), Math.abs(dc));
+						if(distance==1) possibleMove.add(0, move);
+						else possibleMove.add(move);
 					}
 				}
 			}
-			
+			else if(boardState[r][c]==3-turn)
+			{
+				OpponentPoint++;
+			}
 		}
+		
+		// CHECK IF WIN OR LOOSE
+		if(PlayerPoint==0) return -INF;
+		if(OpponentPoint==0) return INF;
+		if(PlayerPoint+OpponentPoint==n*n)
+		{
+			if(PlayerPoint>OpponentPoint) return INF;
+			else if(OpponentPoint>PlayerPoint) return -INF;
+			else return 0;
+		}
+		
+		// SIMULATE ALL THE POSSIBLE MOVE
+		if(depth==maxdepth) return evalpos();
+		long high = a;
+		
+		for(int[] m: possibleMove)
+		{
+			int turnBeforeMove = turn;
+			long v;
+			
+			simulateMove(m);
+			if(turn == turnBeforeMove) v = eval0(depth+1, maxdepth, high, b);
+			else v = -eval0(depth+1, maxdepth, -b, -high);
+			simulateUndo(m);
+			
+			if(depth==0) { System.out.println(Arrays.toString(m)+": "+v); }
+			if(v>high)
+			{
+				high = v;
+				if(depth==0)
+				{
+					bestMove[0] = m[0];
+					bestMove[1] = m[1];
+					bestMove[2] = m[2];
+					bestMove[3] = m[3];
+				}
+			}
+			
+			if(high>=b) return b;
+		}
+		
 		return high;
 	}
 	
