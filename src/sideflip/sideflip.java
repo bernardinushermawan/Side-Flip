@@ -515,16 +515,9 @@ public final class sideflip
 			return;
 		}
 		
-		if(distance==2)
-		{
-			cells[y0][x0].removeAll();
-			resetPiece(x0,y0);
-		}
-		cells[y][x].add(turn==1 ? createMeeple1() : createMeeple2());
-		placePiece(x, y, turn);
-		
 		int oponent = 3-turn;
 		int counter = 4;
+		int num_oponent=0;
 		for(int dr=-1; dr<=1; dr++) for(int dc=-1; dc<=1; dc++)
 		{
 			if(dr==0 && dc==0) continue;
@@ -534,6 +527,7 @@ public final class sideflip
 			{
 				if(boardState[adjY][adjX]==oponent)
 				{
+					num_oponent+=1;
 					cells[adjY][adjX].removeAll();
 					cells[adjY][adjX].add(turn==1 ? createMeeple1() : createMeeple2());
 					placePiece(adjX, adjY, turn);
@@ -542,6 +536,24 @@ public final class sideflip
 			}
 			counter++;
 		}
+		
+		if(distance==2)
+		{
+			if(num_oponent>0)
+			{
+				cells[y0][x0].removeAll();
+				resetPiece(x0,y0);
+			}
+			else
+			{
+				print(status,"<div style='text-align: center; font-family: Arial; font-size: 14px; font-weight: bold; color: #7B2525;'>"
+						+ "You need to flip opponent!</div>");
+				return;
+			}
+		}
+		
+		cells[y][x].add(turn==1 ? createMeeple1() : createMeeple2());
+		placePiece(x, y, turn);
 		
 		if(selY != -1)
 		{
@@ -906,7 +918,7 @@ public final class sideflip
 			{
 				try 
 				{ 
-					long v=eval0(0, 4, -INF-1, INF+1);
+					long v=eval(0, 4, -INF-1, INF+1);
 					System.out.println(Arrays.toString(bestMove)+": "+v+"\n---"); 
 				} 
 				catch(Exception e) { }
@@ -1000,7 +1012,7 @@ public final class sideflip
 		turn = prevTurn;
 	}
 	
-	private long eval0(int depth, int maxdepth, long a, long b)
+	private long eval(int depth, int maxdepth, long a, long b)
 	{
 		int PlayerPoint = 0;
 		int OpponentPoint = 0;
@@ -1019,13 +1031,29 @@ public final class sideflip
 					int nc = c+dc;
 					if(nr>=0 && nr<n && nc>=0 && nc<n && boardState[nr][nc]==0)
 					{
+						int distance = Math.max(Math.abs(dr), Math.abs(dc));
+						if(distance==2)
+						{
+							int num_oponent=0;
+							for(int dr2=-1; dr2<=1; dr2++) for(int dc2=-1; dc2<=1; dc2++)
+							{
+								if(dr2==0 && dc2==0) continue;
+								int nr2 = nr+dr2;
+								int nc2 = nc+dc2;
+								if(nr2>=0 && nr2<n && nc2>=0 && nc2<n && boardState[nr2][nc2]==3-turn)
+								{
+									num_oponent++;
+								}
+							}
+							if(num_oponent==0) continue;
+						}
 						int[] move = new int[13];
 						move[0] = c;
 						move[1] = r;
 						move[2] = nc;
 						move[3] = nr;
 						
-						int distance = Math.max(Math.abs(dr), Math.abs(dc));
+
 						if(distance==1) possibleMove.add(0, move);
 						else possibleMove.add(move);
 					}
@@ -1057,8 +1085,8 @@ public final class sideflip
 			long v;
 			
 			simulateMove(m);
-			if(turn == turnBeforeMove) v = eval0(depth+1, maxdepth, high, b);
-			else v = -eval0(depth+1, maxdepth, -b, -high);
+			if(turn == turnBeforeMove) v = eval(depth+1, maxdepth, high, b);
+			else v = -eval(depth+1, maxdepth, -b, -high);
 			simulateUndo(m);
 			
 			if(depth==0) { System.out.println(Arrays.toString(m)+": "+v); }
