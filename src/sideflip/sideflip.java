@@ -43,6 +43,7 @@ public final class sideflip
 	private final Dimension cellsize = new Dimension(cellwidth, cellwidth);
 	private JPanel[][] cells;
 	private JPanel[][] boxes;
+	private JLabel[][] labels;
 	
 	private int n=8;
 	private int[] points = new int[3];
@@ -308,25 +309,6 @@ public final class sideflip
 		
 	}
 	
-	private JPanel createMeeple1()
-	{
-		JPanel meeple = new JPanel();
-		meeple.setBackground(null);
-		JLabel player = new JLabel("<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>");
-		player.setBorder(BorderFactory.createEmptyBorder(-7,-1,0,-1));
-		meeple.add(player);
-		return meeple;	
-	}
-	private JPanel createMeeple2()
-	{
-		JPanel meeple = new JPanel();
-		meeple.setBackground(null);
-		JLabel player = new JLabel("<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
-		player.setBorder(BorderFactory.createEmptyBorder(-7,-1,0,-1));
-		meeple.add(player);
-		return meeple;	
-	}
-	
 	private void init()
 	{
 		// Get board size //
@@ -358,6 +340,7 @@ public final class sideflip
 		// Make Board //
 		cells = new JPanel[n][n];
 		boxes = new JPanel[n][n];
+		labels = new JLabel[n][n];
 		boardState = new int[n][n];
 		currentMove = new int[13];
 		board.removeAll();
@@ -375,6 +358,8 @@ public final class sideflip
 			cell.setPreferredSize(cellsize);
 			cell.setBackground(null);
 			cell.setLayout(new GridBagLayout());
+			labels[r][c] = new JLabel("");
+			cells[r][c].add(labels[r][c]);
 			JPanel box = new JPanel();
 			boxes[r][c] = box;
 			box.setPreferredSize(boxsize);
@@ -410,13 +395,13 @@ public final class sideflip
 		
 		// Start the game //
 		int center = n/2;
-		cells[center-1][center-1].add(createMeeple1());
+		labels[center-1][center-1].setText("<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>");
 		boardState[center-1][center-1] = 1;
-		cells[center-1][center].add(createMeeple2());
+		labels[center-1][center].setText("<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
 		boardState[center-1][center] = 2;
-		cells[center][center-1].add(createMeeple2());
+		labels[center][center-1].setText("<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
 		boardState[center][center-1] = 2;
-		cells[center][center].add(createMeeple1());
+		labels[center][center].setText("<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>");
 		boardState[center][center] = 1;
 		
 		updatePoint();
@@ -528,8 +513,8 @@ public final class sideflip
 				if(boardState[adjY][adjX]==oponent)
 				{
 					num_oponent+=1;
-					cells[adjY][adjX].removeAll();
-					cells[adjY][adjX].add(turn==1 ? createMeeple1() : createMeeple2());
+					labels[adjY][adjX].setText("");
+					labels[adjY][adjX].setText(turn==1 ? "<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>" : "<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
 					placePiece(adjX, adjY, turn);
 					currentMove[counter] = turn;
 				}
@@ -541,7 +526,7 @@ public final class sideflip
 		{
 			if(num_oponent>0)
 			{
-				cells[y0][x0].removeAll();
+				labels[y0][x0].setText("");
 				resetPiece(x0,y0);
 			}
 			else
@@ -552,7 +537,7 @@ public final class sideflip
 			}
 		}
 		
-		cells[y][x].add(turn==1 ? createMeeple1() : createMeeple2());
+		labels[y][x].setText(turn==1 ? "<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>" : "<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
 		placePiece(x, y, turn);
 		
 		if(selY != -1)
@@ -580,10 +565,10 @@ public final class sideflip
 		int newX = currentState[2];
 		int newY = currentState[3];
 		
-		cells[prevY][prevX].removeAll();
-		cells[prevY][prevX].add(prevTurn==1 ? createMeeple1() : createMeeple2());
+		labels[prevY][prevX].setText("");
+		labels[prevY][prevX].setText(prevTurn==1 ? "<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>": "<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
 		placePiece(prevX, prevY, prevTurn);
-		cells[newY][newX].removeAll();
+		labels[newY][newX].setText("");
 		resetPiece(newX, newY);
 		
 		int counter = 4;
@@ -595,8 +580,8 @@ public final class sideflip
 			if(currentState[counter]==0) counter++;
 			else 
 			{
-				cells[dy][dx].removeAll();
-				cells[dy][dx].add(3-currentState[counter]==1 ? createMeeple1() : createMeeple2());
+				labels[dy][dx].setText("");
+				labels[dy][dx].setText(3-currentState[counter]==1 ? "<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>": "<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
 				placePiece(dx, dy, 3-currentState[counter]);
 				counter++;
 			}
@@ -621,10 +606,10 @@ public final class sideflip
 		
 		if(distance == 2)
 		{
-			cells[prevY][prevX].removeAll();
+			labels[prevY][prevX].setText("");
 			resetPiece(prevX, prevY);
 		}
-		cells[newY][newX].add(turn==1 ? createMeeple1() : createMeeple2());
+		labels[newY][newX].setText(turn==1 ? "<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>" : "<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
 		placePiece(newX, newY, turn);
 		int counter = 4;
 		for(int r=-1; r<=1; r++) for(int c=-1; c<=1; c++)
@@ -635,8 +620,8 @@ public final class sideflip
 			if(currentState[counter]==0) counter++;
 			else 
 			{
-				cells[dy][dx].removeAll();
-				cells[dy][dx].add(currentState[counter]==1 ? createMeeple1() : createMeeple2());
+				labels[dy][dx].setText("");
+				labels[dy][dx].setText(currentState[counter]==1 ? "<html><div style='font-size: 42; color: #7B2525;'>✖</div></html>" : "<html><div style='font-size: 42; color: #607456; font-weight: bold;'>●</div></html>");
 				placePiece(dx, dy, currentState[counter]);
 				counter++;
 			}
@@ -918,7 +903,7 @@ public final class sideflip
 			{
 				try 
 				{ 
-					long v=eval(0, 4, -INF-1, INF+1);
+					long v=eval(0, 3, -INF-1, INF+1);
 					System.out.println(Arrays.toString(bestMove)+": "+v+"\n---"); 
 				} 
 				catch(Exception e) { }
@@ -945,7 +930,75 @@ public final class sideflip
 			if(boardState[r][c]==turn) currentP++;
 			else opponentP++;
 		}
-		return currentP-opponentP;
+		int pieceDiff = currentP-opponentP;
+		
+		int[] currentBest2Moves = getBest2Moves(turn);
+		int[] opponentBest2Moves = getBest2Moves(3-turn);
+		
+		int currentPotential = currentBest2Moves[0] + currentBest2Moves[1];
+		int opponentPotential = opponentBest2Moves[0] + opponentBest2Moves[1];
+		
+		int advantage = currentPotential-opponentPotential;
+		
+		return pieceDiff * 100 + advantage * 20;
+	}
+	
+	private int countFlips(int x, int y, int player)
+	{
+		int opponent = 3-player;
+		int flips = 0;
+		for(int dr=-1; dr<=1; dr++) for(int dc=-1; dc<=1; dc++)
+		{
+			if(dr==0 && dc==0) continue;
+			int nr = y+dr;
+			int nc = x+dc;
+			
+			if(nr<0 || nr>n-1 || nc<0 || nc>n-1) continue;
+			if(boardState[nr][nc]==opponent) flips++;
+		}
+		return flips;
+	}
+	
+	private int[] getBest2Moves(int player)
+	{
+		int best1 = 0;
+		int best2 = 0;
+		int[] best2Moves = new int[2];
+		for(int r=0; r<n; r++) for(int c=0; c<n; c++)
+		{
+			if(boardState[r][c]==0) continue;
+			if(boardState[r][c]==turn)
+			{
+
+				for(int dr=-2; dr<=-2; dr++) for(int dc=-2; dc<=-2; dc++)
+				{
+					if(dr==0 && dc==0) continue;
+					int nr = r+dr;
+					int nc = c+dc;
+					if(nr<0 || nr>n-1 || nc<0 || nc>n-1 || boardState[nr][nc]!=0) continue;
+					
+					int distance = Math.max(Math.abs(nr), Math.abs(nc));
+					int numFlips = countFlips(nc, nr, turn);
+					if(distance==2 && numFlips==0) continue;
+					
+					int moveScore = 2 * numFlips;
+					if(distance==1) moveScore+=1;
+					
+					if(moveScore>best1)
+					{
+						best2 = best1;
+						best1 = moveScore;
+					}
+					else if(moveScore>best2)
+					{
+						best2 = moveScore;
+					}
+				}
+			}
+		}
+		best2Moves[0] = best1;
+		best2Moves[1] = best2;
+		return best2Moves;
 	}
 	
 	private void simulateMove(int[] move) 
